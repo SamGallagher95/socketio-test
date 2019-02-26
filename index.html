@@ -1,0 +1,62 @@
+<html>
+  <head>
+    <title>Test Socket.io</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+  </head>
+  <body>
+    <h2>Hello</h2>
+    <div id="title"></div>
+    <script>
+      function getUrlParameter(name) {
+        name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+        var regex = new RegExp("[\\?&]" + name + "=([^&#]*)");
+        var results = regex.exec(location.search);
+        return results === null
+          ? ""
+          : decodeURIComponent(results[1].replace(/\+/g, " "));
+      }
+
+      var socket = io("http://localhost:80");
+
+      // System info
+      const storeId = 123456;
+      const deviceId = getUrlParameter("deviceId");
+
+      function main() {
+        console.log("Device ready");
+        // Fire the connect event
+        socket.emit("connected", {
+          storeId: 123456,
+          deviceId: deviceId,
+          clientTime: new Date().getTime()
+        });
+
+        socket.on("newConnection", function(data) {
+          console.log("New Connection", data);
+        });
+
+        socket.on("task", data => {
+          if (data.id === deviceId) {
+            console.log(data);
+            console.log("Task at", new Date().getTime());
+            fetch(data.url).then(response => {
+              console.log(response);
+              response.json().then(json => {
+                console.log(json);
+                socket.emit("taskComplete", { url: data.url, data: json });
+              });
+            });
+          }
+        });
+
+        socket.on("newTitle", data => {
+          console.log(data);
+          const msg = data.text;
+          document.getElementById("title").innerHTML = msg;
+        });
+      }
+
+      main();
+    </script>
+  </body>
+</html>
